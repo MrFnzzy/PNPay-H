@@ -15,7 +15,7 @@ export const GENERIC_ERROR = "Something went wrong. Please try again.";
 /** Returns a message safe for the UI; logs the internal error without sensitive data. */
 export function toSafeMessage(err: unknown): string {
   if (err instanceof UserFacingError) return err.message;
-  console.error("[pnpay] unexpected error:", err);
+  console.error("[pnpay] unexpected error:", err instanceof Error ? `${err.message} | cause: ${String((err as { cause?: unknown }).cause)}` : err);
   return GENERIC_ERROR;
 }
 
