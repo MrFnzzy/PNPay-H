@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "batch" varchar(10);--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_batch_valid" CHECK ("users"."batch" IS NULL OR "users"."batch" IN ('2026', '2027', 'alumni'));
