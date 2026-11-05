@@ -10,7 +10,7 @@ For a new Claude account or developer maintaining PNPay-H from **PNPay-H_Phase4_
    npm ci && npm run typecheck && npm test && npm run build
    npm run test:e2e        # optional; needs Playwright + Chromium resolvable via NODE_PATH
    ```
-   `npm test` starts an embedded PostgreSQL, which refuses to run as root: use a normal OS user, or set `TEST_DATABASE_URL` to a disposable database (the migration-upgrade test also needs CREATE DATABASE rights there). Expected: **143/143** tests, E2E **74/74**.
+   `npm test` starts an embedded PostgreSQL, which refuses to run as root: use a normal OS user, or set `TEST_DATABASE_URL` to a disposable database (the migration-upgrade test also needs CREATE DATABASE rights there). Expected: **148/148** tests, E2E **74/74**.
 4. If this ZIP and a GitHub repository disagree, inspect both and record the difference in BUILD_HANDOFF.md. Never overwrite newer work; never force-push.
 
 ## Rules that must keep holding
@@ -29,7 +29,7 @@ Recommended maintenance: migrate to zod 4 (D-050) and re-run `npm audit`; consid
 ```
 You are maintaining the existing PNPay-H project (Next.js 15, TypeScript, Drizzle ORM, PostgreSQL, Vercel, GitHub). Do not rely on any earlier conversation.
 I am attaching PNPay-H_Phase4_Final.zip (and the LLD). Unzip it and read PHASE_HANDOFF_INSTRUCTIONS.md first, then BUILD_HANDOFF.md, BUILD_PROGRESS.md, PROJECT_CONTEXT.md, DECISIONS.md, TEST_RESULTS.md, README.md and docs/DEPLOYMENT.md.
-Verify the baseline (npm ci, typecheck, npm test as a non-root user, build; expect 143/143) and report any discrepancy before changing anything.
+Verify the baseline (npm ci, typecheck, npm test as a non-root user, build; expect 148/148) and report any discrepancy before changing anything.
 Keep the stack and the rules D-016 to D-050. Do not add features or business rules that I have not requested. My task: <describe the task: e.g. help me deploy to Vercel step by step / fix this bug / apply Miss Jean's reminder decision>.
 Update the continuity documents afterwards and, if I ask for a package, create a new complete ZIP, list and extract it to verify it, and report honestly (COMPLETE / PARTIALLY COMPLETE / BLOCKED).
 ```

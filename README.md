@@ -7,7 +7,7 @@ Status: **Phase 4 of 4 built and tested locally - PARTIALLY COMPLETE overall** b
 See `BUILD_PROGRESS.md` for the exact state and `PHASE_HANDOFF_INSTRUCTIONS.md` to continue.
 
 ## Stack
-Next.js 15 (App Router) · TypeScript · Drizzle ORM + `pg` · PostgreSQL · Resend (email) · Vercel.
+Next.js 15 (App Router) · TypeScript · Drizzle ORM + `pg` · PostgreSQL · email via Nodemailer SMTP (free, e.g. Gmail) or Resend · Vercel.
 
 ## Quick start (local)
 Requirements: Node 20.12+ and a PostgreSQL database (local or managed, e.g. Neon).
@@ -65,7 +65,7 @@ Log in at `/admin/login` (account created once with `npm run admin:create`). Pag
 In-app notifications (student and admin, own records only, read/unread, link to the related payment) are written in the same transaction as the payment change. Emails (admin: new receipt; student: verified / correction requested / rejected; reminders) are queued on the notification, sent after the response with retry/backoff, every attempt recorded, never blocking or failing the payment action. Failed emails show on `/admin/email` with a Retry button. Reminders: 5 days before the due date (configurable, `REMINDER_DAYS_BEFORE`), once per installment and due date; overdue notices are OFF until Miss Jean approves (`OVERDUE_REMINDERS_ENABLED`). Scheduled by one Vercel Cron job (`/api/cron/daily`, needs `CRON_SECRET`). Details: DECISIONS.md D-042 to D-050, docs/DEPLOYMENT.md section 6.
 
 ## Testing
-`npm test` (143 integration tests on a real PostgreSQL: auth, student, admin, Phase 4 email/reminders/migration upgrade) and `npm run build && npm run test:e2e` (74 browser checks, needs Playwright + Chromium; `NODE_PATH` must resolve `playwright`). Results and gaps: TEST_RESULTS.md.
+`npm test` (148 integration tests on a real PostgreSQL: auth, student, admin, Phase 4 email/reminders/migration upgrade) and `npm run build && npm run test:e2e` (74 browser checks, needs Playwright + Chromium; `NODE_PATH` must resolve `playwright`). Results and gaps: TEST_RESULTS.md.
 
 ## Maintenance workflow
 Edit code -> `npm run typecheck && npm test` -> schema change: edit `src/db/schema.ts`, `npm run db:generate`, review/hand-edit the SQL (add backfills BEFORE new constraints), commit `drizzle/` -> push to a branch -> Vercel preview -> merge to `main` (production). Apply migrations with `DATABASE_URL=<prod> npm run db:migrate` BEFORE deploying code that needs them. Re-run `npm audit` periodically.

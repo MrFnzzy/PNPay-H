@@ -4,7 +4,7 @@ Checkpoint: **END OF PHASE 4 (final package).** Date: 2026-11-05. All four phase
 
 ## Last completed task
 Phase 4: notification completion, email worker with retry, reminders, cron routes, admin email troubleshooting page, security audit + fixes, migration `0003`, full test pass, documentation. Verified in the build sandbox (non-root user, embedded PostgreSQL 18):
-baseline first (116/116, build, E2E 64/64) -> after changes: `npm run typecheck` 0 errors, `npm test` **143/143**, `npm run build` OK, `npm run test:e2e` **74/74**, and the same checks were repeated from the EXTRACTED final ZIP (see TEST_RESULTS.md "Final package verification").
+baseline first (116/116, build, E2E 64/64) -> after changes: `npm run typecheck` 0 errors, `npm test` **148/148**, `npm run build` OK, `npm run test:e2e` **74/74**, and the same checks were repeated from the EXTRACTED final ZIP (see TEST_RESULTS.md "Final package verification").
 
 ## Current unfinished task
 None in code. Everything unfinished needs the user's accounts (see below).

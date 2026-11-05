@@ -9,7 +9,7 @@ Labels: **PASSED** = executed and passed here. **FAILED** = executed and failed.
 |---|---|---|
 | Baseline BEFORE any Phase 4 change | `npm ci; typecheck; npm test; npm run build; npm run test:e2e` | PASSED: 116/116, build OK (25 routes), E2E 64/64 (matches the Phase 3 documents) |
 | Typecheck | `npm run typecheck` | PASSED, 0 errors |
-| Integration (real PostgreSQL) | `npm test` | **PASSED 143/143** (116 earlier + 27 new in `tests/phase4.test.ts`) |
+| Integration (real PostgreSQL) | `npm test` | **PASSED 148/148** (116 earlier + 27 new in `tests/phase4.test.ts`) |
 | Production build | `npm run build` | PASSED (30 routes incl. `/admin/email`, 4 cron routes) |
 | Browser E2E on the production build | `npm run test:e2e` | **PASSED 74/74** (64 earlier + 10 new "P4" checks) |
 | Package check | extract the final ZIP, `npm ci`, typecheck, test, build | see "Final package verification" below |
@@ -81,8 +81,11 @@ PASSED: registration and duplicate protection; verification and expiry; student/
 BLOCKED: everything that needs GitHub, Vercel, Neon, Blob or Resend accounts (deployment tests listed in docs/DEPLOYMENT.md section 8).
 NOT TESTED: mobile viewport / screen reader / keyboard-only; load; real decodable screenshots; penetration test.
 
+## Addendum: SMTP provider (D-051)
+`tests/smtp.test.ts` (5 tests, PASSED): real Nodemailer transport against an in-process fake SMTP server - authenticated delivery, 5xx permanent / 4xx retryable / bad credentials permanent, unreachable server retryable, error text free of addresses and secrets, environment validation (smtp needs host/user/pass; production accepts resend or smtp, refuses file/memory). **Live Gmail: NOT TESTED.** Totals after this addendum: integration 148/148; build and browser E2E re-run (see below).
+
 ## Final package verification
-Performed 2026-11-05 on the packaged `PNPay-H_Phase4_Final.zip`: extracted into a clean directory and, from there, `npm ci` (148 packages) -> `npm run typecheck` (0 errors) -> `npm test` **143/143** -> `npm run build` OK -> `npm run test:e2e` **74/74**. Archive integrity (`unzip -t`), file listing, forbidden-entry check (no node_modules, .next, .env files other than `.env.example`, receipts, dumps, tsbuildinfo), secret-pattern scan of the extracted tree, and a file-by-file comparison with the working tree were also run (results in the end-of-phase report). The ZIP was rebuilt once after this paragraph was added (documentation text only; no code changed after the verified run).
+Performed 2026-11-05 on the packaged `PNPay-H_Phase4_Final.zip`: extracted into a clean directory and, from there, `npm ci` (148 packages) -> `npm run typecheck` (0 errors) -> `npm test` **148/148** -> `npm run build` OK -> `npm run test:e2e` **74/74**. Archive integrity (`unzip -t`), file listing, forbidden-entry check (no node_modules, .next, .env files other than `.env.example`, receipts, dumps, tsbuildinfo), secret-pattern scan of the extracted tree, and a file-by-file comparison with the working tree were also run (results in the end-of-phase report). The ZIP was rebuilt once after this paragraph was added (documentation text only; no code changed after the verified run).
 
 
 

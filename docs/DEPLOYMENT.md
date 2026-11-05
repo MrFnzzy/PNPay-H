@@ -23,9 +23,14 @@ Migrations: `0000_init`, `0001_phase2_student_portal`, `0002_phase3_admin_review
 `0003_phase4_notifications_email` (adds email-queue columns, `payment_reminders`, `job_runs`; backfills rows queued by earlier phases before adding a check constraint).
 `0003` was tested as an upgrade of a database that already held Phase 3 data (tests/phase4.test.ts). **Never reset a production database.** Back it up (provider snapshot) before migrating.
 
-## 3. Email (Resend)
-Create an account, verify a sending domain, create an API key. `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` (an address on the verified domain). Production refuses `file`/`memory`.
-Every notification email is sent with an `Idempotency-Key` header (so a retry after a crash cannot produce a second copy). **This header and Resend's behaviour have not been tested against the live API.**
+## 3. Email - choose ONE provider (production refuses `file`/`memory`)
+**Option A - free SMTP with Nodemailer (e.g. Gmail), `EMAIL_PROVIDER=smtp`.** No domain needed.
+1. Use a dedicated Gmail account. Turn on 2-Step Verification, then create an **App password** (Google Account -> Security -> App passwords). Your normal password will NOT work.
+2. Set `EMAIL_PROVIDER=smtp`, `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER=<the gmail address>`, `SMTP_PASS=<the 16-character app password>`, `EMAIL_FROM="PNPay-H <the same gmail address>"` (Gmail rewrites other sender addresses).
+3. Limits: a free Gmail account allows roughly 500 messages per day, and mail may land in spam; fine for a school class, not for large volumes. Port 587 works too (`SMTP_PORT=587`, `SMTP_SECURE=false`).
+4. SMTP has no idempotency key: if a server crashes in the instant after Gmail accepted a message but before our database update, one duplicate email is possible (rare). Resend avoids that.
+**Option B - Resend, `EMAIL_PROVIDER=resend`.** Verify a sending domain, create an API key, set `RESEND_API_KEY` and `EMAIL_FROM` (an address on that domain). Every email carries an `Idempotency-Key` header; its behaviour has not been tested against the live API.
+Neither live provider has been tested here; the SMTP path was tested against an in-process fake SMTP server with the real Nodemailer transport.
 
 ## 4. Vercel project
 Import the GitHub repo (Framework Next.js; install `npm ci`; build `npm run build`; production branch `main`). Add for **Production** and **Preview** (use a separate database for Preview):
@@ -35,7 +40,9 @@ Import the GitHub repo (Framework Next.js; install `npm ci`; build `npm run buil
 | `DATABASE_URL` | managed Postgres |
 | `AUTH_SECRET` | `openssl rand -base64 48`. Changing it logs everyone out and invalidates pending verification links |
 | `APP_BASE_URL` | production URL, `https://...`, no trailing slash (used in every email link) |
-| `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM` | `resend` + Resend values |
+| `EMAIL_PROVIDER`, `EMAIL_FROM` | `smtp` or `resend` (section 3) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | only for `smtp` (Gmail: `smtp.gmail.com`, `465`, `true`, address, app password) |
+| `RESEND_API_KEY` | only for `resend` |
 | `RECEIPT_STORAGE` | `vercel-blob` (production refuses anything else) |
 | `BLOB_READ_WRITE_TOKEN` | added when a **Private** Blob store is connected (step 5) |
 | `CRON_SECRET` | `openssl rand -base64 48` (>= 32 chars). Vercel then sends it to the cron routes automatically |

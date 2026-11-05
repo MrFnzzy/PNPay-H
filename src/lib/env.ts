@@ -6,9 +6,16 @@ const schema = z
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
     AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
     APP_BASE_URL: z.string().url("APP_BASE_URL must be a full URL").transform((v) => v.replace(/\/+$/, "")),
-    EMAIL_PROVIDER: z.enum(["resend", "file", "memory"]).default("file"),
+    EMAIL_PROVIDER: z.enum(["resend", "smtp", "file", "memory"]).default("file"),
     EMAIL_FROM: z.string().min(3).default("PNPay-H <no-reply@example.com>"),
     RESEND_API_KEY: z.string().optional(),
+    /** EMAIL_PROVIDER=smtp (Nodemailer): e.g. Gmail smtp.gmail.com:465 with an APP PASSWORD (not the normal password). */
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
+    /** true = implicit TLS (port 465). false = STARTTLS upgrade (port 587). */
+    SMTP_SECURE: z.enum(["true", "false"]).default("true"),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASS: z.string().min(1).optional(),
     /** Override only for tests (mock provider). Defaults to the real Resend API. */
     RESEND_API_URL: z.string().url().default("https://api.resend.com/emails"),
     /** Private receipt storage. vercel-blob in production; local (dev only) and memory (tests). */
@@ -31,6 +38,11 @@ const schema = z
     if (v.EMAIL_PROVIDER === "resend" && !v.RESEND_API_KEY) {
       ctx.addIssue({ code: "custom", path: ["RESEND_API_KEY"], message: "RESEND_API_KEY is required when EMAIL_PROVIDER=resend" });
     }
+    if (v.EMAIL_PROVIDER === "smtp") {
+      for (const k of ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"] as const) {
+        if (!v[k]) ctx.addIssue({ code: "custom", path: [k], message: `${k} is required when EMAIL_PROVIDER=smtp` });
+      }
+    }
     if (v.RECEIPT_STORAGE === "vercel-blob" && !v.BLOB_READ_WRITE_TOKEN) {
       ctx.addIssue({ code: "custom", path: ["BLOB_READ_WRITE_TOKEN"], message: "BLOB_READ_WRITE_TOKEN is required when RECEIPT_STORAGE=vercel-blob" });
     }
@@ -38,8 +50,8 @@ const schema = z
     if (v.NODE_ENV === "production" && v.RECEIPT_STORAGE !== "vercel-blob" && !storageBypass) {
       ctx.addIssue({ code: "custom", path: ["RECEIPT_STORAGE"], message: "RECEIPT_STORAGE must be 'vercel-blob' in production" });
     }
-    if (v.NODE_ENV === "production" && v.EMAIL_PROVIDER !== "resend") {
-      ctx.addIssue({ code: "custom", path: ["EMAIL_PROVIDER"], message: "EMAIL_PROVIDER must be 'resend' in production" });
+    if (v.NODE_ENV === "production" && v.EMAIL_PROVIDER !== "resend" && v.EMAIL_PROVIDER !== "smtp") {
+      ctx.addIssue({ code: "custom", path: ["EMAIL_PROVIDER"], message: "EMAIL_PROVIDER must be 'resend' or 'smtp' in production" });
     }
     if (v.NODE_ENV === "production" && !v.APP_BASE_URL.startsWith("https://")) {
       ctx.addIssue({ code: "custom", path: ["APP_BASE_URL"], message: "APP_BASE_URL must use https in production" });

@@ -1,5 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { mkdir, writeFile } from "node:fs/promises";
+import nodemailer, { type Transporter } from "nodemailer";
 import path from "node:path";
 import { getDb } from "@/db";
 import { emailDeliveries } from "@/db/schema";
@@ -33,6 +34,40 @@ export function failNextEmailForTests(v: boolean | "permanent" = true) {
   g.__pnpayFailNext = v;
 }
 
+/**
+ * Classifies a Nodemailer error. Permanent (retrying cannot help): bad credentials (EAUTH), bad envelope/recipient
+ * (EENVELOPE), SMTP 5xx replies. Retryable: connection/DNS/timeout problems and SMTP 4xx (temporary) replies.
+ */
+export function classifySmtpError(err: unknown): EmailSendError {
+  const e = err as { code?: string; responseCode?: number };
+  const rc = typeof e?.responseCode === "number" ? e.responseCode : undefined;
+  const label = `smtp error ${e?.code ?? "unknown"}${rc ? ` ${rc}` : ""}`; // never the server's text (may echo addresses)
+  if (e?.code === "EAUTH" || e?.code === "EENVELOPE") return new EmailSendError(label, false);
+  if (rc !== undefined) return new EmailSendError(label, rc >= 400 && rc < 500);
+  return new EmailSendError(label, true);
+}
+
+const g2 = globalThis as unknown as { __pnpaySmtp?: Transporter };
+function smtpTransport(): Transporter {
+  if (g2.__pnpaySmtp) return g2.__pnpaySmtp;
+  const env = getEnv();
+  g2.__pnpaySmtp = nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE === "true",
+    auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 8_000,
+  });
+  return g2.__pnpaySmtp;
+}
+/** Tests only: forget the cached SMTP transport after changing SMTP_* variables. */
+export function resetSmtpTransportForTests() {
+  g2.__pnpaySmtp?.close();
+  g2.__pnpaySmtp = undefined;
+}
+
 const RETRYABLE_HTTP = (status: number) => status === 408 || status === 425 || status === 429 || status >= 500;
 
 /** Hands one message to the configured provider. Throws EmailSendError. Never logs the message. */
@@ -52,6 +87,15 @@ export async function sendViaProvider(msg: OutgoingEmail): Promise<void> {
     const dir = path.join(process.cwd(), ".dev-mail");
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, `${Date.now()}-${msg.to.replace(/[^a-z0-9@.]/gi, "_")}.txt`), `To: ${msg.to}\nSubject: ${msg.subject}\n\n${msg.text}`);
+    return;
+  }
+  if (env.EMAIL_PROVIDER === "smtp") {
+    try {
+      // SMTP has no idempotency key: a crash between "server accepted" and our database update could, rarely, send one duplicate.
+      await smtpTransport().sendMail({ from: env.EMAIL_FROM, to: msg.to, subject: msg.subject, text: msg.text, html: msg.html });
+    } catch (err) {
+      throw classifySmtpError(err);
+    }
     return;
   }
   const headers: Record<string, string> = { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" };
